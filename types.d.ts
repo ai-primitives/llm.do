@@ -88,3 +88,8 @@ interface DurableObjectNamespace {
   idFromName(name: string): DurableObjectId;
   get(id: DurableObjectId): DurableObject;
 }
+
+export interface ExecutionContext {
+  waitUntil(promise: Promise<any>): void;
+  passThroughOnException?(): void;
+}
