@@ -7,6 +7,13 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@cloudflare/ai':
+        specifier: ^1.0.47
+        version: 1.2.2
+      hono:
+        specifier: ^3.11.7
+        version: 3.12.12
     devDependencies:
       '@cloudflare/vitest-pool-workers':
         specifier: ^0.5.2
@@ -25,6 +32,10 @@ importers:
         version: 3.98.0(@cloudflare/workers-types@4.20241218.0)
 
 packages:
+
+  '@cloudflare/ai@1.2.2':
+    resolution: {integrity: sha512-dT4gUPKWUERoTHHrbUrhJBIP8P9k6qybw5fK4bnqSAyTL9AvU98D7z6SOT/BwvmOhYA8hzBGNRbQsXyvxniGyA==}
+    deprecated: 'Thanks for using @cloudflare/ai: This package has been deprecated in favor of the native binding, learn more here https://developers.cloudflare.com/workers-ai/configuration/bindings/ '
 
   '@cloudflare/kv-asset-handler@0.3.4':
     resolution: {integrity: sha512-YLPHc8yASwjNkmcDMQMY35yiWjoKAKnhUbPRszBRS0YgH+IXtsMp61j+yTcnCE3oO2DgP0U3iejLC8FTtKDC8Q==}
@@ -623,6 +634,10 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
+  hono@3.12.12:
+    resolution: {integrity: sha512-5IAMJOXfpA5nT+K0MNjClchzz0IhBHs2Szl7WFAhrFOsbtQsYmNynFyJRg/a3IPsmCfxcrf8txUGiNShXpK5Rg==}
+    engines: {node: '>=16.0.0'}
+
   is-core-module@2.16.0:
     resolution: {integrity: sha512-urTSINYfAYgcbLb0yDQ6egFm6h3Mo1DcF9EkyXSRjjzdHbsulg01qhwWuXdOoUBuTkbQ80KDboXa0vFJ+BDH+g==}
     engines: {node: '>= 0.4'}
@@ -897,6 +912,8 @@ packages:
     resolution: {integrity: sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==}
 
 snapshots:
+
+  '@cloudflare/ai@1.2.2': {}
 
   '@cloudflare/kv-asset-handler@0.3.4':
     dependencies:
@@ -1342,6 +1359,8 @@ snapshots:
   hasown@2.0.2:
     dependencies:
       function-bind: 1.1.2
+
+  hono@3.12.12: {}
 
   is-core-module@2.16.0:
     dependencies:
