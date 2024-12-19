@@ -1,5 +1,19 @@
 import { Hono } from 'hono';
 import type { Context, Env as HonoEnv } from 'hono';
+import type {
+  Env,
+  ExportedHandler,
+  InputQueueMessage,
+  ProcessingQueueMessage,
+  ResultsQueueMessage,
+  QueueMessage,
+  MessageBatch,
+  R2Event,
+  ProcessingStats,
+  DurableObject,
+  DurableObjectNamespace,
+  Queue
+} from '../types';
 
 // Extend Hono's environment type with our bindings
 type AppEnv = HonoEnv & Env;
@@ -7,8 +21,31 @@ type AppEnv = HonoEnv & Env;
 // Create Hono app with environment bindings
 const app = new Hono<AppEnv>();
 
+let processingStartTime: number;
+
 // Health check endpoint
 app.get('/', (c) => c.text('OK'));
+
+// Metrics endpoint
+app.get('/metrics', async (c) => {
+  const env = c.env as unknown as AppEnv;
+  const statsId = env.STATS.idFromName('global');
+  const statsObj = env.STATS.get(statsId);
+  const stats = await statsObj.fetch('/stats');
+
+  // Update queue depths
+  const queueDepths = {
+    input: await env.INPUT_QUEUE.length(),
+    processing: await env.PROCESSING_QUEUE.length(),
+    results: await env.RESULTS_QUEUE.length(),
+  };
+
+  const currentStats = await stats.json() as ProcessingStats;
+  currentStats.queueDepths = queueDepths;
+  currentStats.lastUpdated = Date.now();
+
+  return c.json(currentStats);
+});
 
 // R2 bucket event handler
 async function handleR2Event(event: R2Event, env: Env): Promise<void> {
@@ -66,10 +103,29 @@ async function processJSONLFile(message: InputQueueMessage, env: Env): Promise<v
 
 // Process individual JSONL line with AI
 async function processJSONLLine(message: ProcessingQueueMessage, env: Env): Promise<void> {
+  const MAX_RETRIES = 3;
+  const retryCount = message.retryCount || 0;
+  const startTime = Date.now();
+
   try {
     // Process data with Workers AI
     const inputs = [message.data];
     const results = await env.AI.run('@cf/meta/llama-2-7b-chat-int8', inputs);
+
+    // Update processing stats
+    const statsId = env.STATS.idFromName('global');
+    const stats = env.STATS.get(statsId);
+    try {
+      await stats.fetch('/stats', {
+        method: 'POST',
+        body: JSON.stringify({
+          totalProcessed: 1,
+          averageProcessingTime: Date.now() - startTime,
+        }),
+      });
+    } catch (error) {
+      console.error('Error updating processing stats:', error);
+    }
 
     // Queue result for batching
     await env.RESULTS_QUEUE.send({
@@ -80,7 +136,26 @@ async function processJSONLLine(message: ProcessingQueueMessage, env: Env): Prom
     });
   } catch (error) {
     console.error(`Error processing line from ${message.sourceFile}:`, error);
-    throw error; // Let the queue handler handle the retry
+
+    // Update error stats
+    const statsId = env.STATS.idFromName('global');
+    const stats = env.STATS.get(statsId);
+    await stats.fetch('/stats', {
+      method: 'POST',
+      body: JSON.stringify({
+        failedRequests: 1,
+      }),
+    });
+
+    if (retryCount < MAX_RETRIES) {
+      await env.PROCESSING_QUEUE.send({
+        ...message,
+        retryCount: retryCount + 1,
+        timestamp: Date.now(),
+      });
+    } else {
+      throw error;
+    }
   }
 }
 
@@ -151,6 +226,25 @@ export default {
 
   // Queue handlers
   async queue(batch: MessageBatch<any>, env: Env): Promise<void> {
+    // Update queue depths
+    const statsId = env.STATS.idFromName('global');
+    const stats = env.STATS.get(statsId);
+    const queueName = batch.queue.toUpperCase().replace(/-/g, '_') as keyof Pick<Env, 'INPUT_QUEUE' | 'PROCESSING_QUEUE' | 'RESULTS_QUEUE'>;
+
+    try {
+      await stats.fetch('/stats', {
+        method: 'POST',
+        body: JSON.stringify({
+          queueDepths: {
+            [batch.queue]: await env[queueName].length(),
+          },
+        }),
+      });
+    } catch (error) {
+      console.error('Error updating queue stats:', error);
+    }
+
+    // Process messages
     for (const message of batch.messages) {
       try {
         switch (batch.queue) {
@@ -171,5 +265,5 @@ export default {
         message.retry();
       }
     }
-  },
-} satisfies ExportedHandler<Env>;
+  }
+} as ExportedHandler<Env>;
