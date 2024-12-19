@@ -68,3 +68,23 @@ interface ExportedHandler<Env, Q = unknown, R = unknown> {
   queue?(batch: MessageBatch<Q>, env: Env, ctx: ExecutionContext): Promise<void>;
   r2Event?(event: R2Event, env: Env, ctx: ExecutionContext): Promise<void>;
 }
+
+interface Queue<T = unknown> {
+  send(message: T): Promise<void>;
+  length(): Promise<number>;
+}
+
+interface DurableObjectId {
+  toString(): string;
+  equals(other: DurableObjectId): boolean;
+  name?: string;
+}
+
+interface DurableObject {
+  fetch(request: string | Request, init?: RequestInit): Promise<Response>;
+}
+
+interface DurableObjectNamespace {
+  idFromName(name: string): DurableObjectId;
+  get(id: DurableObjectId): DurableObject;
+}

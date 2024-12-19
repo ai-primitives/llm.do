@@ -8,7 +8,11 @@ import type {
   ResultsQueueMessage,
   QueueMessage,
   MessageBatch,
-  R2Event
+  R2Event,
+  ProcessingStats,
+  DurableObject,
+  DurableObjectNamespace,
+  Queue
 } from '../types';
 
 // Extend Hono's environment type with our bindings
@@ -21,6 +25,27 @@ let processingStartTime: number;
 
 // Health check endpoint
 app.get('/', (c) => c.text('OK'));
+
+// Metrics endpoint
+app.get('/metrics', async (c) => {
+  const env = c.env as unknown as AppEnv;
+  const statsId = env.STATS.idFromName('global');
+  const statsObj = env.STATS.get(statsId);
+  const stats = await statsObj.fetch('/stats');
+
+  // Update queue depths
+  const queueDepths = {
+    input: await env.INPUT_QUEUE.length(),
+    processing: await env.PROCESSING_QUEUE.length(),
+    results: await env.RESULTS_QUEUE.length(),
+  };
+
+  const currentStats = await stats.json() as ProcessingStats;
+  currentStats.queueDepths = queueDepths;
+  currentStats.lastUpdated = Date.now();
+
+  return c.json(currentStats);
+});
 
 // R2 bucket event handler
 async function handleR2Event(event: R2Event, env: Env): Promise<void> {
@@ -91,7 +116,7 @@ async function processJSONLLine(message: ProcessingQueueMessage, env: Env): Prom
     const statsId = env.STATS.idFromName('global');
     const stats = env.STATS.get(statsId);
     try {
-      await stats.fetch('https://stats/stats', {
+      await stats.fetch('/stats', {
         method: 'POST',
         body: JSON.stringify({
           totalProcessed: 1,
@@ -115,7 +140,7 @@ async function processJSONLLine(message: ProcessingQueueMessage, env: Env): Prom
     // Update error stats
     const statsId = env.STATS.idFromName('global');
     const stats = env.STATS.get(statsId);
-    await stats.fetch('https://stats/stats', {
+    await stats.fetch('/stats', {
       method: 'POST',
       body: JSON.stringify({
         failedRequests: 1,
@@ -207,7 +232,7 @@ export default {
     const queueName = batch.queue.toUpperCase().replace(/-/g, '_') as keyof Pick<Env, 'INPUT_QUEUE' | 'PROCESSING_QUEUE' | 'RESULTS_QUEUE'>;
 
     try {
-      await stats.fetch('https://stats/stats', {
+      await stats.fetch('/stats', {
         method: 'POST',
         body: JSON.stringify({
           queueDepths: {
@@ -219,6 +244,7 @@ export default {
       console.error('Error updating queue stats:', error);
     }
 
+    // Process messages
     for (const message of batch.messages) {
       try {
         switch (batch.queue) {
@@ -239,5 +265,5 @@ export default {
         message.retry();
       }
     }
-  },
-} satisfies ExportedHandler<Env>;
+  }
+} as ExportedHandler<Env>;
