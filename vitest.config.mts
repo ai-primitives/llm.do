@@ -6,29 +6,35 @@ export default defineWorkersConfig({
       workers: {
         wrangler: {
           configPath: './wrangler.toml',
-          ai: {
-            models: {
-              '@cf/meta/llama-2-7b-chat-int8': {
+          modules: true,
+          experimental: {
+            disableExperimentalWarning: true,
+          },
+          bindings: {
+            AI: {
+              name: 'AI',
+              type: 'ai',
+              models: [{
+                name: '@cf/meta/llama-2-7b-chat-int8',
                 type: 'mock',
                 response: 'Test response'
-              }
+              }]
+            },
+            STORAGE: {
+              name: 'STORAGE',
+              type: 'r2',
+              bucketName: 'llm-do-test-bucket'
+            },
+            INPUT_QUEUE: {
+              name: 'INPUT_QUEUE',
+              type: 'queue',
+              queueName: 'llm-do-test-queue'
+            },
+            PROCESSING_QUEUE: {
+              name: 'PROCESSING_QUEUE',
+              type: 'queue',
+              queueName: 'llm-do-test-queue'
             }
-          },
-          r2: {
-            buckets: [{
-              binding: 'STORAGE',
-              bucket_name: 'llm-do-test-bucket'
-            }]
-          },
-          queues: {
-            producers: [{
-              binding: 'INPUT_QUEUE',
-              queue_name: 'llm-do-test-queue'
-            }],
-            consumers: [{
-              binding: 'PROCESSING_QUEUE',
-              queue_name: 'llm-do-test-queue'
-            }]
           }
         },
       },
