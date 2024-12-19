@@ -67,18 +67,20 @@ async function processJSONLFile(message: InputQueueMessage, env: Env): Promise<v
 // Process individual JSONL line with AI
 async function processJSONLLine(message: ProcessingQueueMessage, env: Env): Promise<void> {
   try {
-    // Process data with AI (will be implemented in next PR)
-    const result = { processed: true, data: message.data };
+    // Process data with Workers AI
+    const inputs = [message.data];
+    const results = await env.AI.run('@cf/meta/llama-2-7b-chat-int8', inputs);
 
     // Queue result for batching
     await env.RESULTS_QUEUE.send({
-      result,
+      result: results[0],
       sourceFile: message.sourceFile,
       timestamp: Date.now(),
       batchId: getBatchId(message.timestamp),
     });
   } catch (error) {
     console.error(`Error processing line from ${message.sourceFile}:`, error);
+    throw error; // Let the queue handler handle the retry
   }
 }
 
