@@ -8,7 +8,8 @@
 		"start": "wrangler dev",
 		"test": "vitest",
 		"types": "wrangler types types.d.ts",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"build": "wrangler deploy --dry-run --outdir=dist"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.5.2",
