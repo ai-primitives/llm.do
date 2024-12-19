@@ -30,6 +30,10 @@ jobs:
           NODE_ENV: test
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_WORKER_NAME: llm-do-test
+          CLOUDFLARE_R2_BUCKET: llm-do-test-bucket
+          CLOUDFLARE_QUEUE_NAME: llm-do-test-queue
+          CLOUDFLARE_AI_MODEL: "@cf/meta/llama-2-7b-chat-int8"
 
       - name: Run load tests
         run: pnpm test:load
@@ -37,3 +41,7 @@ jobs:
           NODE_ENV: test
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_WORKER_NAME: llm-do-test
+          CLOUDFLARE_R2_BUCKET: llm-do-test-bucket
+          CLOUDFLARE_QUEUE_NAME: llm-do-test-queue
+          CLOUDFLARE_AI_MODEL: "@cf/meta/llama-2-7b-chat-int8"
