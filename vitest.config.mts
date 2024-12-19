@@ -12,28 +12,22 @@ export default defineWorkersConfig({
           },
           bindings: {
             AI: {
-              name: 'AI',
-              type: 'ai',
-              models: [{
-                name: '@cf/meta/llama-2-7b-chat-int8',
-                type: 'mock',
-                response: 'Test response'
-              }]
+              prepare: () => ({
+                run: async () => ({ response: 'Test response' })
+              })
             },
             STORAGE: {
-              name: 'STORAGE',
-              type: 'r2',
-              bucketName: 'llm-do-test-bucket'
+              get: async () => new Response('test'),
+              put: async () => {},
+              list: async () => ({ objects: [] })
             },
             INPUT_QUEUE: {
-              name: 'INPUT_QUEUE',
-              type: 'queue',
-              queueName: 'llm-do-test-queue'
+              send: async () => {},
+              sendBatch: async () => {}
             },
             PROCESSING_QUEUE: {
-              name: 'PROCESSING_QUEUE',
-              type: 'queue',
-              queueName: 'llm-do-test-queue'
+              send: async () => {},
+              sendBatch: async () => {}
             }
           }
         },
